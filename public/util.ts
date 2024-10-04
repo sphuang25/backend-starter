@@ -80,6 +80,18 @@ const operations: Operation[] = [
     method: "DELETE",
     fields: { id: "input" },
   },
+  {
+    name: "Add Label",
+    endpoint: "/api/label/add",
+    method: "POST",
+    fields: { id: "input", content: "input" },
+  },
+  {
+    name: "Check Label",
+    endpoint: "/api/label/check",
+    method: "GET",
+    fields: { id: "input" },
+  },
   //
   // ...
   //
@@ -140,7 +152,8 @@ function fieldsToHtml(fields: Record<string, Field>, indent = 0, prefix = ""): s
 
 function getHtmlOperations() {
   return operations.map((operation) => {
-    return `<li class="operation">
+    return `
+    <li class="operation">
       <h3>${operation.name}</h3>
       <form class="operation-form">
         <input type="hidden" name="$endpoint" value="${operation.endpoint}" />

@@ -7,7 +7,7 @@ body {
   padding: 0;
   font-family: sans-serif;
   max-height: 100vh;
-  background-color: #f1f3f5;
+  background-color: #ffffff;
 }
 
 h1, h2 {
@@ -35,7 +35,9 @@ main {
   height: 80vh;
   width: 100%;
   overflow: auto;
-  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #dbd5d5;
+  border: 1px solid #a78342;
   padding: 1em;
 }
 
@@ -46,7 +48,8 @@ main {
 }
 
 .operation {
-  border: 1px solid #ccc;
+  border: 1px solid #f8eaea;
+  background-color: #f8eaea;
   border-radius: 6px;
   padding: 1em;
   list-style: none;

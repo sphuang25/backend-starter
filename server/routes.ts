@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 
 import { Router, getExpressRouter } from "./framework/router";
 
-import { Authing, Friending, Posting, Sessioning } from "./app";
+import { Authing, Friending, Labelling, Posting, Sessioning } from "./app";
 import { PostOptions } from "./concepts/posting";
 import { SessionDoc } from "./concepts/sessioning";
 import Responses from "./responses";
@@ -151,6 +151,66 @@ class Routes {
     const user = Sessioning.getUser(session);
     const fromOid = (await Authing.getUserByUsername(from))._id;
     return await Friending.rejectRequest(fromOid, user);
+  }
+
+  @Router.post("/label/add")
+  async addLabel(session: SessionDoc, id: string, content: string) {
+    const user = Sessioning.getUser(session);
+    const oid = new ObjectId(id);
+    await Posting.assertAuthorIsUser(oid, user);
+
+    const label = await Labelling.appendLabel(oid, content);
+    return { msg: label.msg };
+  }
+
+  @Router.get("/label/check")
+  async checkLabel(session: SessionDoc, id: string) {
+    const user = Sessioning.getUser(session);
+    const oid = new ObjectId(id);
+    await Posting.assertAuthorIsUser(oid, user);
+
+    const label = await Labelling.checkLabel(oid);
+    return label;
+  }
+
+  @Router.delete("/label/delete")
+  async deleteLabel(session: SessionDoc, id: string, labelIdx: string) {
+    throw new Error();
+  }
+
+  @Router.get("/interface/check")
+  async checkInterface(session: SessionDoc, userId: string) {
+    throw new Error();
+  }
+
+  @Router.post("/interface/set")
+  async setInterface(session: SessionDoc, userId: string, interfaceType: string) {
+    throw new Error();
+  }
+
+  @Router.post("/interface/poke")
+  async poke(session: SessionDoc, userId: string, message: string) {
+    throw new Error();
+  }
+
+  @Router.post("/message/send")
+  async sendMessage(session: SessionDoc, userId: string, message: string) {
+    throw new Error();
+  }
+
+  @Router.post("/message/share")
+  async shareItem(session: SessionDoc, userId: string, itemId: string) {
+    throw new Error();
+  }
+
+  @Router.get("/message/search")
+  async searchWithLabel(session: SessionDoc, label: string) {
+    throw new Error();
+  }
+
+  @Router.delete("/message/delete")
+  async deleteMessage(session: SessionDoc, messageID: string) {
+    throw new Error();
   }
 }
 
