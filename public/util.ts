@@ -92,6 +92,21 @@ const operations: Operation[] = [
     method: "GET",
     fields: { id: "input" },
   },
+
+  {
+    name: "Delete Label by Index",
+    endpoint: "/api/label/removeIdx",
+    method: "POST",
+    fields: { id: "input", labelIdx: "input" },
+  },
+
+  {
+    name: "Delete Label by Content",
+    endpoint: "/api/label/removeContent",
+    method: "DELETE",
+    fields: { id: "input", content: "input" },
+  },
+
   //
   // ...
   //

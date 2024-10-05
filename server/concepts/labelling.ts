@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import DocCollection, { BaseDoc } from "../framework/doc";
-import { NotAllowedError } from "./errors";
+import { BadValuesError, NotAllowedError } from "./errors";
 
 export interface LabelDoc extends BaseDoc {
   item: ObjectId;
@@ -20,47 +20,78 @@ export default class LabellingConcept {
     this.labels = new DocCollection<LabelDoc>(collectionName);
   }
 
-  async getCorrspondingLabelDoc(item: ObjectId) {
+  async checkRep(item: ObjectId) {
+    /*
+     * make sure each item only correspond to one label object in this.labels
+     */
     const labelsOfItem = await this.labels.readMany({ item });
-    if (labelsOfItem.length === 0) {
-      return null;
-    } else if (labelsOfItem.length === 1) {
-      return labelsOfItem[0];
-    } else {
+    if (labelsOfItem.length > 1) {
       throw new LabelInvariantBrokenError(item);
     }
+    return labelsOfItem;
+  }
+
+  async getLabelDoc(item: ObjectId) {
+    await this.checkRep(item);
+
+    const labelsOfItem = await this.labels.readOne({ item });
+    if (labelsOfItem === null) {
+      throw new NotLabelledError(item);
+    }
+    return labelsOfItem;
   }
 
   async appendLabel(item: ObjectId, content: string) {
-    var targetLabelDoc = await this.getCorrspondingLabelDoc(item);
-    if (targetLabelDoc === null) {
+    var labelsOfItem = await this.checkRep(item);
+
+    if (labelsOfItem.length === 0) {
       const label = await this.labels.createOne({ item, label: [content] });
-      return { msg: `This is your first label for this item! You labelled ${content}` };
+      return { msg: `First label for this item! You labelled ${content}` };
     } else {
-      targetLabelDoc.label.push(content);
-      return { msg: `Successfully added label ${targetLabelDoc.label} to this item!` };
+      const targetLabelDoc = await this.getLabelDoc(item);
+      var listOfLabels = targetLabelDoc.label;
+      listOfLabels.push(content);
+      await this.labels.partialUpdateOne({ item }, { label: listOfLabels });
+      return { msg: `Added ${listOfLabels.length}-th label: ${content}!` };
     }
   }
 
-  async checkLabel(item: ObjectId) {
-    const targetLabelDoc = await this.getCorrspondingLabelDoc(item);
-    return targetLabelDoc;
+  async removeLabelByIndex(item: ObjectId, index: string) {
+    const targetLabelDoc = await this.getLabelDoc(item);
+    const numIdx = parseInt(index) - 1;
+    const toRemove = targetLabelDoc.label[numIdx];
+
+    if (toRemove === undefined || numIdx < 0) {
+      throw new LabelIndexError(item, targetLabelDoc.label.length, index);
+    }
+
+    targetLabelDoc.label.splice(numIdx, 1);
+    await this.labels.partialUpdateOne({ item }, { label: targetLabelDoc.label });
+    return { msg: `The ${index}-th label: ${toRemove} is now removed!` };
   }
 
-  //   async removeLabelByContent(item: ObjectId, content: string) {
-  //     const targetLabelDoc = await this.getCorrspondingLabelDoc(item);
-  //     if (targetLabelDoc === null) {
-  //       const label = await this.labels.createOne({ item, label: [content] });
-  //       return { msg: `This is your first label for this item! You labelled ${content}` };
-  //     } else {
-  //       targetLabelDoc.label.push(content);
-  //       return { msg: `Successfully added label ${content} to this item!` };
-  //     }
-  //   }
+  async removeLabelByContent(item: ObjectId, content: string) {
+    const targetLabelDoc = await this.getLabelDoc(item);
+    var newLabelArray = targetLabelDoc.label.filter((x) => x !== content);
+    await this.labels.partialUpdateOne({ item }, { label: newLabelArray });
+    return { msg: `All ${content} labels are now removed!` };
+  }
 }
 
 export class LabelInvariantBrokenError extends NotAllowedError {
   constructor(item_id: ObjectId) {
     super(`LabelDoc rep invariant is broken. Check why there are more than one label objects correspond to the same item ${item_id.toString()}.`);
+  }
+}
+
+export class LabelIndexError extends BadValuesError {
+  constructor(item_id: ObjectId, max_idx: number, idx: string) {
+    super(`Please select positive integer no larger than ${max_idx}. You selected ${idx}.`);
+  }
+}
+
+export class NotLabelledError extends BadValuesError {
+  constructor(item_id: ObjectId) {
+    super(`Item ${item_id.toString()} has no labels yet!`);
   }
 }

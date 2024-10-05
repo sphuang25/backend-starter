@@ -169,13 +169,28 @@ class Routes {
     const oid = new ObjectId(id);
     await Posting.assertAuthorIsUser(oid, user);
 
-    const label = await Labelling.checkLabel(oid);
+    const label = await Labelling.getLabelDoc(oid);
     return label;
   }
 
-  @Router.delete("/label/delete")
-  async deleteLabel(session: SessionDoc, id: string, labelIdx: string) {
-    throw new Error();
+  @Router.post("/label/removeIdx")
+  async deleteLabelByIndex(session: SessionDoc, id: string, labelIdx: string) {
+    const user = Sessioning.getUser(session);
+    const oid = new ObjectId(id);
+    await Posting.assertAuthorIsUser(oid, user);
+
+    const label = await Labelling.removeLabelByIndex(oid, labelIdx);
+    return label;
+  }
+
+  @Router.delete("/label/removeContent")
+  async deleteLabelByContent(session: SessionDoc, id: string, content: string) {
+    const user = Sessioning.getUser(session);
+    const oid = new ObjectId(id);
+    await Posting.assertAuthorIsUser(oid, user);
+
+    const label = await Labelling.removeLabelByContent(oid, content);
+    return label;
   }
 
   @Router.get("/interface/check")
