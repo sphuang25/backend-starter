@@ -2,12 +2,13 @@ import { ObjectId } from "mongodb";
 
 import { Router, getExpressRouter } from "./framework/router";
 
-import { Authing, Friending, Labelling, Posting, Sessioning } from "./app";
+import { Authing, Friending, Interfacing, Labelling, Messaging, Posting, Sessioning } from "./app";
 import { PostOptions } from "./concepts/posting";
 import { SessionDoc } from "./concepts/sessioning";
 import Responses from "./responses";
 
 import { z } from "zod";
+import { InterfaceType } from "./concepts/interfacing";
 
 /**
  * Web server routes for the app. Implements synchronizations between concepts.
@@ -35,7 +36,9 @@ class Routes {
   @Router.post("/users")
   async createUser(session: SessionDoc, username: string, password: string) {
     Sessioning.isLoggedOut(session);
-    return await Authing.create(username, password);
+    const message = await Authing.create(username, password);
+    Interfacing.createInterface(message.id);
+    return message;
   }
 
   @Router.patch("/users/username")
@@ -87,7 +90,7 @@ class Routes {
   async createPost(session: SessionDoc, content: string, options?: PostOptions) {
     const user = Sessioning.getUser(session);
     const created = await Posting.create(user, content, options);
-    return { msg: created.msg, post: await Responses.post(created.post) };
+    return { msg: created.msg, post: await Responses.post(created.post), id: created.postID };
   }
 
   @Router.patch("/posts/:id")
@@ -170,7 +173,7 @@ class Routes {
     await Posting.assertAuthorIsUser(oid, user);
 
     const label = await Labelling.getLabelDoc(oid);
-    return label;
+    return { msg: `Labels in this post: ${label.label}.` };
   }
 
   @Router.post("/label/removeIdx")
@@ -193,39 +196,83 @@ class Routes {
     return label;
   }
 
-  @Router.get("/interface/check")
-  async checkInterface(session: SessionDoc, userId: string) {
-    throw new Error();
+  @Router.get("/interface/check/:usernameToCheck")
+  async checkInterface(session: SessionDoc, usernameToCheck: string) {
+    const user = Sessioning.getUser(session);
+    const toCheckOid = (await Authing.getUserByUsername(usernameToCheck))._id;
+    await Friending.assertFriendsOrSelf(user, toCheckOid);
+    const thisInterface = await Interfacing.getInterface(toCheckOid);
+    const interfaceString: string = thisInterface;
+    return { msg: `User ${usernameToCheck} is on interface ${interfaceString}`, interfaceString: interfaceString };
   }
 
   @Router.post("/interface/set")
-  async setInterface(session: SessionDoc, userId: string, interfaceType: string) {
-    throw new Error();
+  async setInterface(session: SessionDoc, interfaceType: string) {
+    const user = Sessioning.getUser(session);
+    const interfaceItem = await Interfacing.getInterfaceEnumBystring(interfaceType);
+    Interfacing.switchInterface(user, interfaceItem);
+    return { msg: `You now have interface ${interfaceType}.`, interfaceType: interfaceType };
   }
 
   @Router.post("/interface/poke")
-  async poke(session: SessionDoc, userId: string, message: string) {
-    throw new Error();
+  async poke(session: SessionDoc, username: string, messageString?: string) {
+    const user = Sessioning.getUser(session);
+    const friend = (await Authing.getUserByUsername(username))._id;
+    await Friending.assertFriendsOrSelf(user, friend);
+    const friendsInterface = await Interfacing.getInterface(friend);
+
+    if (friendsInterface == InterfaceType.Leisure) {
+      const messageStringFinal = messageString === undefined ? "Focus Bro!" : messageString;
+      const messageId = await Messaging.createMessage(undefined, messageStringFinal);
+      await Messaging.sendMessage(user, friend, messageId);
+      return { msg: `You just poked ${username} and told your friend ${messageStringFinal}!` };
+    } else {
+      return { msg: `Nah, your friend ${username} is locked in!` };
+    }
+  }
+
+  @Router.get("/message/getAll")
+  async getAllMessages(session: SessionDoc) {
+    const user = Sessioning.getUser(session);
+    const allMessages = Messaging.getAllMessageUser(user);
+    return allMessages;
   }
 
   @Router.post("/message/send")
-  async sendMessage(session: SessionDoc, userId: string, message: string) {
-    throw new Error();
-  }
+  async sendMessage(session: SessionDoc, receiverName: string, messageItemID: string, messageContent: string) {
+    const user = Sessioning.getUser(session);
 
-  @Router.post("/message/share")
-  async shareItem(session: SessionDoc, userId: string, itemId: string) {
-    throw new Error();
+    const receiverID = (await Authing.getUserByUsername(receiverName))._id;
+    const messageID = await Messaging.createMessage(messageItemID === undefined ? undefined : new ObjectId(messageItemID), messageContent);
+    // this message should be accessible for both sender and receiver
+    const itemInMessage = (await Messaging.getMessageItem(messageID))["msg"].item;
+    if (itemInMessage !== undefined) {
+      const authorOfItem = await Posting.getAuthorOfPost(itemInMessage);
+      const userClear = (await Friending.isFriend(authorOfItem, user)) || authorOfItem.toString() == user.toString();
+      const receiverClear = (await Friending.isFriend(authorOfItem, receiverID)) || authorOfItem.toString() == receiverID.toString();
+      if (!(userClear && receiverClear)) {
+        throw new Error(`You cannot share this content (${itemInMessage}) because either one of you are not friends with the author.`);
+      }
+    }
+    await Messaging.sendMessage(user, receiverID, messageID);
+    return { msg: `Message ${messageID} sent to ${receiverName}`, id: messageID };
   }
 
   @Router.get("/message/search")
-  async searchWithLabel(session: SessionDoc, label: string) {
-    throw new Error();
+  async searchMessageWithLabel(session: SessionDoc, label: string) {
+    const userID = Sessioning.getUser(session);
+    const itemsThisUser = await Messaging.getAllItemUser(userID);
+    const messagesWithThisLabel = await Labelling.searchLabel(itemsThisUser, label);
+    return messagesWithThisLabel;
   }
 
   @Router.delete("/message/delete")
-  async deleteMessage(session: SessionDoc, messageID: string) {
-    throw new Error();
+  async deleteMessage(session: SessionDoc, messageIDStr: string) {
+    const user = Sessioning.getUser(session);
+    const messageID = new ObjectId(messageIDStr);
+    if (user.toString() == (await Messaging.getMessageSender(messageID)).toString()) {
+      Messaging.deleteMessage(messageID);
+    }
   }
 }
 

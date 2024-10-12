@@ -28,7 +28,7 @@ export default class PostingConcept {
 
   async create(author: ObjectId, content: string, options?: PostOptions) {
     const _id = await this.posts.createOne({ author, content, options });
-    return { msg: "Post successfully created!", post: await this.posts.readOne({ _id }) };
+    return { msg: "Post successfully created!", post: await this.posts.readOne({ _id }), postID: _id };
   }
 
   async getPosts() {
@@ -38,6 +38,14 @@ export default class PostingConcept {
 
   async getByAuthor(author: ObjectId) {
     return await this.posts.readMany({ author });
+  }
+
+  async getAuthorOfPost(postID: ObjectId) {
+    const post = await this.posts.readOne({ _id: postID });
+    if (!post) {
+      throw new NotFoundError(`Post ${postID} does not exist!`);
+    }
+    return post.author;
   }
 
   async update(_id: ObjectId, content?: string, options?: PostOptions) {

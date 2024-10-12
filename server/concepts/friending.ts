@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import DocCollection, { BaseDoc } from "../framework/doc";
-import { NotAllowedError, NotFoundError } from "./errors";
+import { BadValuesError, NotAllowedError, NotFoundError } from "./errors";
 
 export interface FriendshipDoc extends BaseDoc {
   user1: ObjectId;
@@ -78,6 +78,31 @@ export default class FriendingConcept {
     return friendships.map((friendship) => (friendship.user1.toString() === user.toString() ? friendship.user2 : friendship.user1));
   }
 
+  async isFriend(user1: ObjectId, user2: ObjectId) {
+    const friendships = await this.friends.readMany({
+      $or: [
+        { user1: user1, user2: user2 },
+        { user1: user2, user2: user1 },
+      ],
+    });
+    if (friendships.length === 0) {
+      return false;
+    }
+    return true;
+  }
+
+  async assertFriendsOrSelf(user1: ObjectId, user2: ObjectId) {
+    if (!this.isFriend(user1, user2) && user1.toString() !== user2.toString()) {
+      throw new ShouldBeFriendError(user1, user2);
+    }
+  }
+
+  async assertFriends(user1: ObjectId, user2: ObjectId) {
+    if (!this.isFriend(user1, user2)) {
+      throw new ShouldBeFriendError(user1, user2);
+    }
+  }
+
   private async addFriend(user1: ObjectId, user2: ObjectId) {
     void this.friends.createOne({ user1, user2 });
   }
@@ -149,5 +174,14 @@ export class AlreadyFriendsError extends NotAllowedError {
     public readonly user2: ObjectId,
   ) {
     super("{0} and {1} are already friends!", user1, user2);
+  }
+}
+
+export class ShouldBeFriendError extends BadValuesError {
+  constructor(
+    public readonly user1: ObjectId,
+    public readonly user2: ObjectId,
+  ) {
+    super("{0} and {1} should be friends!", user1, user2);
   }
 }

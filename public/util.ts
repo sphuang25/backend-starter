@@ -50,6 +50,7 @@ const operations: Operation[] = [
     method: "DELETE",
     fields: {},
   },
+
   {
     name: "Get Users (empty for all)",
     endpoint: "/api/users/:username",
@@ -80,12 +81,63 @@ const operations: Operation[] = [
     method: "DELETE",
     fields: { id: "input" },
   },
+
+  {
+    name: "Get Friends",
+    endpoint: "/api/friends",
+    method: "GET",
+    fields: {},
+  },
+
+  {
+    name: "Remove Friend",
+    endpoint: "/api/friends/:friend",
+    method: "DELETE",
+    fields: { friend: "input" },
+  },
+
+  {
+    name: "Get All Friends Request",
+    endpoint: "/api/friend/requests",
+    method: "GET",
+    fields: {},
+  },
+
+  {
+    name: "Send Friend Request",
+    endpoint: "/api/friend/requests/:to",
+    method: "POST",
+    fields: { to: "input" },
+  },
+
+  {
+    name: "Remove Friends Request",
+    endpoint: "/api/friend/requests/:to",
+    method: "DELETE",
+    fields: { to: "input" },
+  },
+
+  {
+    name: "Accept Friends Request",
+    endpoint: "/api/friend/accept/:from",
+    method: "PUT",
+    fields: { from: "input" },
+  },
+
+  {
+    name: "Reject Friends Request",
+    endpoint: "/api/friend/reject/:from",
+    method: "PUT",
+    fields: { from: "input" },
+  },
+
   {
     name: "Add Label",
     endpoint: "/api/label/add",
     method: "POST",
     fields: { id: "input", content: "input" },
   },
+
   {
     name: "Check Label",
     endpoint: "/api/label/check",
@@ -105,6 +157,48 @@ const operations: Operation[] = [
     endpoint: "/api/label/removeContent",
     method: "DELETE",
     fields: { id: "input", content: "input" },
+  },
+
+  {
+    name: "Check Interface of User",
+    endpoint: "/api/interface/check/:usernameToCheck",
+    method: "GET",
+    fields: { usernameToCheck: "input" },
+  },
+
+  {
+    name: "Set Interface",
+    endpoint: "/api/interface/set",
+    method: "POST",
+    fields: { interfaceType: "input" },
+  },
+
+  {
+    name: "Poke",
+    endpoint: "/api/interface/poke",
+    method: "POST",
+    fields: { username: "input", messageString: "input" },
+  },
+
+  {
+    name: "Send Message",
+    endpoint: "/api/message/send",
+    method: "POST",
+    fields: { receiverName: "input", messageItemID: "input", messageContent: "input" },
+  },
+
+  {
+    name: "Search Message With Label",
+    endpoint: "/api/message/search",
+    method: "GET",
+    fields: { label: "input" },
+  },
+
+  {
+    name: "Delete Message",
+    endpoint: "/api/message/delete",
+    method: "DELETE",
+    fields: { messageID: "input" },
   },
 
   //

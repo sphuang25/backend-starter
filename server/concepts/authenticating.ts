@@ -26,7 +26,7 @@ export default class AuthenticatingConcept {
   async create(username: string, password: string) {
     await this.assertGoodCredentials(username, password);
     const _id = await this.users.createOne({ username, password });
-    return { msg: "User created successfully!", user: await this.users.readOne({ _id }) };
+    return { msg: "User created successfully!", user: await this.users.readOne({ _id }), id: _id };
   }
 
   private redactPassword(user: UserDoc): Omit<UserDoc, "password"> {
@@ -46,7 +46,7 @@ export default class AuthenticatingConcept {
   async getUserByUsername(username: string) {
     const user = await this.users.readOne({ username });
     if (user === null) {
-      throw new NotFoundError(`User not found!`);
+      throw new NotFoundError(`User not found for ${username}!`);
     }
     return this.redactPassword(user);
   }

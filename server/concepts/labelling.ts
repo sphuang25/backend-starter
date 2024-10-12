@@ -20,9 +20,10 @@ export default class LabellingConcept {
     this.labels = new DocCollection<LabelDoc>(collectionName);
   }
 
-  async checkRep(item: ObjectId) {
+  async getLabelsOfItem(item: ObjectId) {
     /*
      * make sure each item only correspond to one label object in this.labels
+     * Like a checkRep
      */
     const labelsOfItem = await this.labels.readMany({ item });
     if (labelsOfItem.length > 1) {
@@ -32,8 +33,7 @@ export default class LabellingConcept {
   }
 
   async getLabelDoc(item: ObjectId) {
-    await this.checkRep(item);
-
+    await this.getLabelsOfItem(item);
     const labelsOfItem = await this.labels.readOne({ item });
     if (labelsOfItem === null) {
       throw new NotLabelledError(item);
@@ -42,7 +42,7 @@ export default class LabellingConcept {
   }
 
   async appendLabel(item: ObjectId, content: string) {
-    var labelsOfItem = await this.checkRep(item);
+    var labelsOfItem = await this.getLabelsOfItem(item);
 
     if (labelsOfItem.length === 0) {
       const label = await this.labels.createOne({ item, label: [content] });
@@ -58,10 +58,12 @@ export default class LabellingConcept {
 
   async removeLabelByIndex(item: ObjectId, index: string) {
     const targetLabelDoc = await this.getLabelDoc(item);
+
     const numIdx = parseInt(index) - 1;
+
     const toRemove = targetLabelDoc.label[numIdx];
 
-    if (toRemove === undefined || numIdx < 0) {
+    if (Number(index) !== parseInt(index) || toRemove === undefined) {
       throw new LabelIndexError(item, targetLabelDoc.label.length, index);
     }
 
@@ -75,6 +77,22 @@ export default class LabellingConcept {
     var newLabelArray = targetLabelDoc.label.filter((x) => x !== content);
     await this.labels.partialUpdateOne({ item }, { label: newLabelArray });
     return { msg: `All ${content} labels are now removed!` };
+  }
+
+  async searchLabel(itemsToSearch: Array<ObjectId>, label: string) {
+    var itemHasThisLabel = new Array<ObjectId>();
+
+    for (const item of itemsToSearch) {
+      const labelDoc = await this.getLabelDoc(item);
+      for (const labelOfItem of labelDoc.label) {
+        if (labelOfItem.includes(label)) {
+          itemHasThisLabel.push(item);
+          break;
+        }
+      }
+    }
+
+    return itemHasThisLabel;
   }
 }
 
