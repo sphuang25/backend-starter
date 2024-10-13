@@ -73,7 +73,7 @@ const operations: Operation[] = [
     name: "Update Post",
     endpoint: "/api/posts/:id",
     method: "PATCH",
-    fields: { id: "input", content: "input", options: { backgroundColor: "input" } },
+    fields: { id: "input", content: "input" },
   },
   {
     name: "Delete Post",

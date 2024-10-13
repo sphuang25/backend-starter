@@ -92,19 +92,19 @@ export default class FriendingConcept {
   }
 
   async assertFriendsOrSelf(user1: ObjectId, user2: ObjectId) {
-    if (!this.isFriend(user1, user2) && user1.toString() !== user2.toString()) {
+    if (!(await this.isFriend(user1, user2)) && user1.toString() !== user2.toString()) {
       throw new ShouldBeFriendError(user1, user2);
     }
   }
 
   async assertFriends(user1: ObjectId, user2: ObjectId) {
-    if (!this.isFriend(user1, user2)) {
+    if (!(await this.isFriend(user1, user2))) {
       throw new ShouldBeFriendError(user1, user2);
     }
   }
 
   private async addFriend(user1: ObjectId, user2: ObjectId) {
-    void this.friends.createOne({ user1, user2 });
+    await this.friends.createOne({ user1, user2 });
   }
 
   private async removePendingRequest(from: ObjectId, to: ObjectId) {
