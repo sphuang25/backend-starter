@@ -234,7 +234,7 @@ class Routes {
   @Router.get("/message/getAll")
   async getAllMessages(session: SessionDoc) {
     const user = Sessioning.getUser(session);
-    const allMessages = Messaging.getAllMessageUser(user);
+    const allMessages = await Messaging.getAllMessageUser(user);
     return allMessages;
   }
 
@@ -271,7 +271,7 @@ class Routes {
     const user = Sessioning.getUser(session);
     const messageID = new ObjectId(messageIDStr);
     if (user.toString() == (await Messaging.getMessageSender(messageID)).toString()) {
-      Messaging.deleteMessage(messageID);
+      await Messaging.deleteMessage(messageID);
     }
   }
 }

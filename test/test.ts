@@ -302,7 +302,7 @@ describe("Messaging", async () => {
     await app.sendMessage(session, "bob", postID.toString(), "see the post from Chris?");
   });
 
-  it("allows sending when the author is both sender and receiver's friend", async () => {
+  it("does not allow sending when the author is not both sender and receiver's friend", async () => {
     const session = getEmptySession();
     const session2 = getEmptySession();
     const session3 = getEmptySession();
@@ -368,7 +368,7 @@ describe("Messaging", async () => {
     await app.sendMessage(session, "bob", postID2.toString(), "see the post from Chris?");
 
     await app.deleteMessage(session, messageID.toString());
-    // assert((await app.getAllMessages(session)).length === 1);
+    assert((await app.getAllMessages(session)).length === 1);
   });
 });
 
